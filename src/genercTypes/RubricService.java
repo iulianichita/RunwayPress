@@ -17,7 +17,14 @@ public class RubricService implements GenericDatabaseService<Rubric>{
 
     @Override
     public void create(Rubric rubric) throws SQLException {
-        PreparedStatement stmtRubric = connection.prepareStatement("INSERT INTO rubric(title, article, magazineId, fashionDesignerId, fashionHouseId, targetAudience) VALUES (?, ?, ?, ?, ?, ?)");
+        String selectQuery = "SELECT MAX(idrubric) FROM rubric";
+        Statement s = connection.createStatement();
+        ResultSet r = s.executeQuery(selectQuery);
+        Integer lastId = 100;
+        while (r.next())
+            lastId = r.getInt("MAX(idrubric)");
+
+        PreparedStatement stmtRubric = connection.prepareStatement("INSERT INTO rubric(title, article, magazineId, fashionDesignerId, fashionHouseId, targetAudience, idrubric) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         stmtRubric.setString(1, rubric.getTitle()); //title
         stmtRubric.setString(2, rubric.getArticle()); //article
@@ -47,6 +54,7 @@ public class RubricService implements GenericDatabaseService<Rubric>{
         stmtRubric.setInt(4, fashionDesignerId); //fashionDesignerId
 
         stmtRubric.setString(6, rubric.getTargetAudience()); //targetAudience
+        stmtRubric.setInt(7, lastId+1); //idRubric
 
         stmtRubric.executeUpdate();
 
@@ -69,8 +77,8 @@ public class RubricService implements GenericDatabaseService<Rubric>{
             int fashionDesignerId = resultSet.getInt("fashionDesignerId");
 
             // print the retrieved data
-            System.out.println("ID: " + id + ", Name: " + title + ", Article: " + article
-                    + ", magazineId: " + magazineId + ", fashionHouseId: " + fashionHouseId + ", fashionDesignerId: " + fashionDesignerId );
+            System.out.println("\n[ID: " + id + "\nName: " + title + ", Article: " + article
+                    + "\nmagazineId: " + magazineId + "\nfashionHouseId: " + fashionHouseId + "\nfashionDesignerId: " + fashionDesignerId + "]\n" );
         }
     }
 

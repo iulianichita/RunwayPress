@@ -167,7 +167,7 @@ public class Main{
                             appendEditor("Show all fashion houses in alphabetical order.");
                         }
                         case 3 -> {
-                            System.out.println(database.getAllRubrics());
+                            database.getAllRubrics();
                             appendEditor("Show all rubrics.");
                         }
                         case 4 -> {
@@ -219,6 +219,7 @@ public class Main{
                             Scanner scanner6 = new Scanner(System.in);
 
                             String title = null, article = null, magazineName = null, fashionHouseName = null, fashionDesignerName = null, audience = null;
+                            Boolean rubricAdded = false;
                             while (true) {
 
                                 try {
@@ -237,7 +238,8 @@ public class Main{
                                     System.out.println("Enter the target audience(ex: ages 18-24): ");
                                     audience = scanner6.nextLine();
 
-                                    database.addRubric(name, title, article, magazineName, fashionHouseName, fashionDesignerName, audience);
+                                    database.addRubric(name, capitalLetter(title), capitalLetter(article), magazineName, fashionHouseName, fashionDesignerName, audience);
+                                    rubricAdded = true;
                                     break;
 
                                 } catch (RuntimeException error) {
@@ -295,7 +297,8 @@ public class Main{
 
                             }
 
-                            database.addRubric(name, capitalLetter(title), capitalLetter(article), magazineName, fashionHouseName, fashionDesignerName, audience);
+                            if (!rubricAdded)
+                                database.addRubric(name, capitalLetter(title), capitalLetter(article), magazineName, fashionHouseName, fashionDesignerName, audience);
                             System.out.println("\nRubric added successfully!");
 
                             appendEditor("Add a new rubric (" + capitalLetter(title) + ").");
@@ -433,7 +436,7 @@ public class Main{
                             }
                             case 3 -> {
                                 System.out.println();
-                                System.out.println(database.getAllRubrics());
+                                database.getAllRubrics();
                                 appendAdmin("Show all rubrics.");
                             }
                             case 4 -> {

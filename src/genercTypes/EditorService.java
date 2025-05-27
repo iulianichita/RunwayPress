@@ -17,12 +17,19 @@ public class EditorService implements GenericDatabaseService<Editor>{
 
     @Override
     public void create(Editor editor) throws SQLException {
-        PreparedStatement stmtEditor = connection.prepareStatement("INSERT INTO editor(name, email, experience, salary) VALUES (?, ?, ?, ?)");
+        String selectQuery = "SELECT MAX(ideditor) FROM editor";
+        Statement s = connection.createStatement();
+        ResultSet r = s.executeQuery(selectQuery);
+        Integer lastId = 100;
+        while (r.next())
+            lastId = r.getInt("MAX(ideditor)");
+        PreparedStatement stmtEditor = connection.prepareStatement("INSERT INTO editor(name, email, experience, salary, ideditor) VALUES (?, ?, ?, ?, ?)");
 
         stmtEditor.setString(1, editor.getName()); //name
         stmtEditor.setString(2, editor.getEmail()); //email
         stmtEditor.setInt(3, editor.getExperince()); //experience
         stmtEditor.setInt(4, editor.getSalary()); //salary
+        stmtEditor.setInt(5, lastId+1); //idEditor
         stmtEditor.executeUpdate();
 
     }
@@ -42,7 +49,7 @@ public class EditorService implements GenericDatabaseService<Editor>{
             int salary = resultSet.getInt("salary");
 
             // print the retrieved data
-            System.out.println("\n[ ID: " + id + "\nName: " + name + "\nEmail: " + email
+            System.out.println("\n[ID: " + id + "\nName: " + name + "\nEmail: " + email
                     + "\nExperience: " + experience + " years\nSalary: " + salary + "]\n" );
         }
     }

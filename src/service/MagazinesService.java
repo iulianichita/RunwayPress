@@ -248,8 +248,8 @@ public final class MagazinesService{
         System.out.println(critics.toString());
     }
 
-    public String getAllRubrics() {
-        return rubrics.toString();
+    public void getAllRubrics() throws SQLException {
+        rubricService.read();
     }
 
     public String getRubricsMagazine(String magazineName) {
@@ -301,12 +301,13 @@ public final class MagazinesService{
         rubricService.create(rubric);
     }
 
-    public void addFashionDesigner(String name, String email, Integer experience, List<String> affiliates) {
+    public void addFashionDesigner(String name, String email, Integer experience, List<String> affiliates) throws SQLException {
         List<FashionHouse> affiliatesList = fashionHouses.stream()
                 .filter(f -> affiliates.contains(f.getName()))
                 .toList();
         FashionDesigner fashionDesigner = new FashionDesigner(name, email, experience, affiliatesList);
         fashionDesigners.add(fashionDesigner);
+        fashionDesignerService.create(fashionDesigner);
     }
 
     public void delRubric(String title) throws SQLException {
