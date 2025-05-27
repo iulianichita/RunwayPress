@@ -1,9 +1,15 @@
 package model;
 
+import genercTypes.GenericDatabaseService;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-public final class Magazine {
+public final class Magazine{
     private String name;
     private Integer noRubrics;
     private List<String> countries = new ArrayList<>();
@@ -44,4 +50,6 @@ public final class Magazine {
                 "\nNoRubrics: " + noRubrics +
                 "\nCountries: " + countries;
     }
+
+
 }

@@ -22,6 +22,10 @@ public class FashionDesigner extends Person{
         }
     }
 
+    public List<FashionHouse> getAffiliates() {
+        return affiliates;
+    }
+
     @Override
     public String toString(){
         return "\n\nName:" + name +

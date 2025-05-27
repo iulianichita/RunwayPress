@@ -3,15 +3,26 @@
  *   see the stored data (Magazines, Fashion Houses, known critics, fashion designers, other editors)
 */
 
+
 import service.MagazinesService;
 import service.OptionsAdmin;
 import service.OptionsMenu;
 
 import java.io.Console;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 public class Main{
+    // get the path for the csv file
+    static Path pathEditor = Paths.get("C:\\Uni\\PAO Java\\FashionMagazines\\src\\csv_report\\reportEditor.csv");
+    static Path pathAdmin = Paths.get("C:\\Uni\\PAO Java\\FashionMagazines\\src\\csv_report\\reportAdmin.csv");
 
     static String capitalLetter(String text) {
         StringBuilder result = new StringBuilder();
@@ -36,26 +47,62 @@ public class Main{
                 .collect(Collectors.joining(" "));
     }
 
+    public static void appendEditor(String option){
+        Date date = new Date();
+        Timestamp ts = new Timestamp(date.getTime());
+        String reportContent = "[" + ts.toString() + "] " + option + "\n";
+        try {
+            Files.write(pathEditor, reportContent.getBytes(), StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    public static void main(String[] args) throws InterruptedException{
+    public static void appendAdmin(String option){
+        if (option.equalsIgnoreCase("New login!"))
+            try {
+                Files.write(pathAdmin, "\n".getBytes(), StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        Date date = new Date();
+        Timestamp ts = new Timestamp(date.getTime());
+        String reportContent = "[" + ts.toString() + "] " + option + "\n";
+        try {
+            Files.write(pathAdmin, reportContent.getBytes(), StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static void main(String[] args) throws InterruptedException, SQLException {
+
 
         System.out.println("\nWelcome to your studio!\n");
 
         Scanner scanner = new Scanner(System.in);
         MagazinesService database = MagazinesService.getInstance();
+//        database.initialize();
 
         while(true) {
-            Integer value = 0;
-            try {
-                System.out.println("Please enter 1 for **editor**, 2 for **admin** privileges:");
-                value = scanner.nextInt();
-                scanner.nextLine();
-            } catch (InputMismatchException error) {
-                System.out.println("You have to enter **1** or **2**.");
+            String value;
+            Boolean exitEditorMode, exitAdminMode;
+            System.out.println("Please enter 1 for **editor**, 2 for **admin** privileges or exit to **exit the app** :");
+            while (true) {
+                value = scanner.nextLine();
+                if (value.equalsIgnoreCase("exit"))
+                    System.exit(0);
+                else if (!value.equalsIgnoreCase("1") && !value.equalsIgnoreCase("2")) {
+                    System.out.println("The value should be a **1** or **2**. Please enter the value again:");
+                }
+                else
+                    break;
             }
 
 
-            if (value == 1) {
+            if (value.equalsIgnoreCase("1")) {
 
                 System.out.println("Please enter your name: ");
                 String name = scanner.nextLine();
@@ -86,7 +133,8 @@ public class Main{
                 System.out.println();
                 System.out.println("\n\nWelcome, " + capitalizeEachWord(name) + "!");
 
-                while (true) {
+                exitEditorMode = false;
+                while (!exitEditorMode) {
 
                     Integer i = 1;
                     System.out.println();
@@ -110,9 +158,18 @@ public class Main{
                     }
 
                     switch (option) {
-                        case 1 -> System.out.println(database.getMagazines());
-                        case 2 -> System.out.println(database.getFashionHouses());
-                        case 3 -> System.out.println(database.getAllRubrics());
+                        case 1 -> {
+                            System.out.println(database.getMagazines());
+                            appendEditor("Show all magazines in alphabetical order.");
+                        }
+                        case 2 -> {
+                            System.out.println(database.getFashionHouses());
+                            appendEditor("Show all fashion houses in alphabetical order.");
+                        }
+                        case 3 -> {
+                            System.out.println(database.getAllRubrics());
+                            appendEditor("Show all rubrics.");
+                        }
                         case 4 -> {
                             System.out.println("These are the magazines: ");
                             System.out.println(database.getMagazinesName());
@@ -122,8 +179,10 @@ public class Main{
                                     System.out.println("\nEnter the name of the magazine: ");
                                     Scanner scanner4 = new Scanner(System.in);
                                     String magazineName = scanner4.nextLine();
+                                    System.out.println();
                                     if (database.getMagazinesName().toUpperCase().contains(magazineName.toUpperCase())) {
                                         System.out.println(database.getRubricsMagazine(magazineName));
+                                        appendEditor("Show rubrics for a specified magazine.");
                                         break;
                                     } else {
                                         System.out.println("Sorry. Magazine name not recognized.");
@@ -131,6 +190,7 @@ public class Main{
                                 }
 
                             }
+
                         }
                         case 5 -> {
                             System.out.println("These are the fashion houses: ");
@@ -141,8 +201,10 @@ public class Main{
                                     System.out.println("\nEnter the name of the fashion house: ");
                                     Scanner scanner5 = new Scanner(System.in);
                                     String houseName = scanner5.nextLine();
+                                    System.out.println();
                                     if (database.getFashionHousesName().toUpperCase().contains(houseName.toUpperCase())) {
                                         System.out.println(database.getRubricsHouse(houseName));
+                                        appendEditor("Show rubrics for a specified fashion house.");
                                         break;
                                     } else {
                                         System.out.println("Sorry. House name not recognized.");
@@ -150,6 +212,7 @@ public class Main{
                                 }
 
                             }
+
 
                         }
                         case 6 -> {
@@ -234,6 +297,8 @@ public class Main{
 
                             database.addRubric(name, capitalLetter(title), capitalLetter(article), magazineName, fashionHouseName, fashionDesignerName, audience);
                             System.out.println("\nRubric added successfully!");
+
+                            appendEditor("Add a new rubric (" + capitalLetter(title) + ").");
                         }
                         case 7 -> {
                             while (true) {
@@ -244,26 +309,31 @@ public class Main{
                                 if (database.verifyRubricTitle(title)) {
                                     database.delRubric(title);
                                     System.out.println("Rubric deleted successfully!");
+                                    appendEditor("Delete a rubric (" + capitalizeEachWord(title) + ").");
                                     break;
                                 } else {
                                     System.out.println("No rubric found with the title: " + title + ". Please try again.");
                                 }
                             }
+
                         }
                         case 8 -> {
                             System.out.println("\n-- Our archive: ");
                             System.out.println(database.getArchive());
                             System.out.println("\n---");
+                            appendEditor("Show rubrics archive.");
                         }
                         case 9 -> {
                             System.out.println("\nTOP 3 BEST SELLERS");
                             database.getTop3BestSellersMagazines();
                             System.out.println();
+                            appendEditor("Top3 best sellers magazines.");
                         }
                         case 10 -> {
                             System.out.println("\nTOP 3 MOST RUBRICS");
                             database.getTop3MoreRubricsMagazines();
                             System.out.println();
+                            appendEditor("Top3 magazines with most rubrics");
                         }
                         case 11 -> {
                             System.out.println("These are the magazines: ");
@@ -277,6 +347,7 @@ public class Main{
                                         String magazineName = scanner11.nextLine();
                                         if (database.verifyMagazineName(magazineName)) {
                                             System.out.println(database.magazineDetails(magazineName));
+                                            appendEditor("Show details of a specified magazine");
                                             break;
                                         } else {
                                             throw new RuntimeException("Magazine not found. Please enter a valid name.");
@@ -290,11 +361,16 @@ public class Main{
                             }
 
                         }
-                        case 12 -> System.exit(0);
+                        case 12 -> {
+                            exitEditorMode = true;
+                            scanner.nextLine();
+                        }
+                        case 13 -> System.exit(0);
                     }
 
                 }
-            } else {
+            } else if (value.equalsIgnoreCase("2")){
+                Scanner scannerAdmin= new Scanner(System.in);
                 // case when the person is the admin
                 Integer count = 0;
                 Console console = System.console();
@@ -315,12 +391,14 @@ public class Main{
                         System.out.println("Incorrect password.");
                     } else {
                         System.out.println("Welcome, admin! You are now in privilege mode.");
+                        appendAdmin("New login!");
+                        exitAdminMode = false;
                         break;
                     }
                 }
 
                 if (count != 3){
-                    while (true){
+                    while (!exitAdminMode){
 
                         Integer i = 1;
                         System.out.println();
@@ -331,33 +409,46 @@ public class Main{
                         while (true) {
                             try {
                                 System.out.println("\nEnter value: ");
-                                input = scanner.nextInt();
+                                input = scannerAdmin.nextInt();
                                 if (input < 1 | input >= i)
                                     throw new IllegalArgumentException("Invalid option");
                                 break;
                             } catch (InputMismatchException e) {
-                                System.out.println("You must enter a **number** between 1 and " + i + ".");
-                                scanner.nextLine();
+                                System.out.println("You must enter a **number** between 1 and " + OptionsAdmin.values().length + ".");
                             } catch (IllegalArgumentException e) {
                                 System.out.println("Invalid option. Your option should be a number between 1 and " + OptionsAdmin.values().length + ".");
                             }
                         }
 
                         switch (input) {
-                            case 1 -> System.out.println(database.getMagazines());
-                            case 2 -> System.out.println(database.getFashionHouses());
-                            case 3 -> System.out.println(database.getAllRubrics());
+                            case 1 -> {
+                                System.out.println();
+                                System.out.println(database.getMagazines());
+                                appendAdmin("Show all magazines in alphabetical order.");
+                            }
+                            case 2 -> {
+                                System.out.println();
+                                System.out.println(database.getFashionHouses());
+                                appendAdmin("Show all fashion houses in alphabetical order.");
+                            }
+                            case 3 -> {
+                                System.out.println();
+                                System.out.println(database.getAllRubrics());
+                                appendAdmin("Show all rubrics.");
+                            }
                             case 4 -> {
-                                System.out.println("These are the fashion houses: ");
+                                System.out.println("\nThese are the fashion houses: ");
                                 System.out.println(database.getFashionHousesName());
 
                                 if (!database.getFashionHousesName().equals("No fashion houses available.")) {
                                     while (true) {
                                         System.out.println("\nEnter the name of the fashion house: ");
-                                        Scanner scanner5 = new Scanner(System.in);
-                                        String houseName = scanner5.nextLine();
+                                        Scanner scannerAdmin4 = new Scanner(System.in);
+                                        String houseName = scannerAdmin4.nextLine();
+                                        System.out.println();
                                         if (database.getFashionHousesName().toUpperCase().contains(houseName.toUpperCase())) {
                                             System.out.println(database.getRubricsHouse(houseName));
+                                            appendAdmin("Show rubrics for a specified magazine.");
                                             break;
                                         } else {
                                             System.out.println("Sorry. House name not recognized.");
@@ -367,61 +458,74 @@ public class Main{
                                 }
 
                             }
-                            case 5 -> database.getCritics();
-                            case 6 ->  database.getEditors();
+                            case 5 -> {
+                                System.out.println();
+                                database.getCritics();
+                                appendAdmin("Show all critics");
+                            }
+                            case 6 -> {
+                                System.out.println();
+                                database.getEditors();
+                                appendAdmin("Show all editors");
+                            }
                             case 7 -> {
-                                System.out.println("These are team's editors: ");
+                                System.out.println("\nThese are team's editors: ");
                                 database.getEditorsName();
                                 System.out.println();
 
                                 while (true) {
                                     try {
-                                        System.out.println("Enter the editor name that you want to increase his salary: ");
-                                        Scanner scanner8 = new Scanner(System.in);
-                                        String editorName = scanner8.nextLine();
+                                        System.out.println("\nEnter the editor name that you want to increase his salary: ");
+                                        Scanner scannerAdmin7 = new Scanner(System.in);
+                                        String editorName = scannerAdmin7.nextLine();
                                         database.getEditor(editorName);
-                                        System.out.println("Would you like to increase(1) or decrease(2) his salary? Enter your option:");
+                                        System.out.println("\nWould you like to increase(1) or decrease(2) his salary? Enter your option:");
                                         Boolean increase = false;
                                         while (true) {
-                                            Integer opt = scanner8.nextInt();
+                                            Integer opt = scannerAdmin7.nextInt();
                                             if (opt == 1) {
                                                 increase = true; break;
                                             }
                                             else if (opt == 2){
                                                 increase = false; break; }
                                             else
-                                                System.out.println("Please enter a valid option (1 or 2)");
+                                                System.out.println("\nPlease enter a valid option (1 or 2)");
                                         }
-                                        System.out.println("Enter the amount: ");
-                                        Integer amount = scanner8.nextInt();
+                                        System.out.println("\nEnter the amount: ");
+                                        Integer amount = scannerAdmin7.nextInt();
                                         database.editEditor(editorName, amount, increase);
-                                        System.out.println("Success!");
+                                        System.out.println("\nSuccess!");
+                                        appendAdmin("Edit the contract for a specified editor (" + capitalizeEachWord(editorName) + ").");
                                         break;
                                     } catch (RuntimeException e) {
-                                        System.out.println("Please enter a valid editor name.");
+                                        System.out.println("\nPlease enter a valid editor name.");
                                     }
                                 }
                             }
                             case 8 -> {
-                                System.out.println("These are team's editors: ");
+                                System.out.println("\nThese are team's editors: ");
                                 database.getEditorsName();
                                 System.out.println();
 
                                 while (true) {
                                     try {
-                                        System.out.println("Enter the editor name that you want to fire: ");
-                                        Scanner scanner8 = new Scanner(System.in);
-                                        String editorName = scanner8.nextLine();
+                                        System.out.println("\nEnter the editor name that you want to fire: ");
+                                        Scanner scannerAdmin8 = new Scanner(System.in);
+                                        String editorName = scannerAdmin8.nextLine();
                                         database.delEditor(editorName);
-                                        System.out.println("Success! This member is no longer in our team.");
+                                        System.out.println("\nSuccess! This member is no longer in our team.");
+                                        appendAdmin("Remove an editor from the team (" + capitalizeEachWord(editorName) + ").");
                                         break;
                                     } catch (RuntimeException e) {
-                                        System.out.println("Please enter a valid editor name.");
+                                        System.out.println("\nPlease enter a valid editor name.");
                                     }
                                 }
 
                             }
-                            case 9 -> System.exit(0);
+                            case 9 -> {
+                                exitAdminMode = true;
+                            }
+                            case 10 -> System.exit(0);
                         }
 
                     }

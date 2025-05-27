@@ -10,6 +10,7 @@ public enum OptionsAdmin {
     showEditors("Show all editors"),
     editEditor("Edit the contract for a specified editor"),
     delEditors("Remove an editor from the team"),
+    exitEditorMode("Exit admin priviledges."),
     EXIT("Exit.");
 
 

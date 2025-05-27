@@ -1,12 +1,22 @@
 package service;
 
+import genercTypes.*;
 import model.*;
 
+import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public final class MagazinesService {
-    private static MagazinesService singleInstance = new MagazinesService();
+public final class MagazinesService{
+    private static MagazinesService singleInstance;
+
+    static {
+        try {
+            singleInstance = new MagazinesService();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private Set<FashionHouse> fashionHouses;
     private Set<Magazine> magazines;
@@ -22,7 +32,20 @@ public final class MagazinesService {
     List<Optional<Rubric>> archive;
 
 
-    private MagazinesService() {
+    Connection connection = DriverManager.getConnection(
+            "jdbc:mysql://127.0.0.1:3306/javaproject",
+            "JavaProject User",
+            "java"
+    );
+    MagazineService magazineService = new MagazineService();
+    FashionHouseService fashionHouseService = new FashionHouseService();
+    CriticService criticService = new CriticService();
+    EditorService editorService = new EditorService();
+    FashionDesignerService fashionDesignerService = new FashionDesignerService();
+    RubricService rubricService = new RubricService();
+
+
+    private MagazinesService() throws SQLException {
         fashionHouses = new TreeSet<>();
         magazines = new HashSet<>();
         rubrics = new ArrayList<>();
@@ -160,12 +183,13 @@ public final class MagazinesService {
         return magazineFound.isPresent();
     }
 
-    public void addEditor(String name, String email, Integer experience) {
+    public void addEditor(String name, String email, Integer experience) throws SQLException {
         editors.add(new Editor(name, email, experience));
+        editorService.create(new Editor(name, email, experience));
     }
 
-    public void getEditors() {
-        System.out.println(editors.toString());
+    public void getEditors() throws SQLException {
+        editorService.read();
     }
 
     public void getEditorsName() {
@@ -190,7 +214,7 @@ public final class MagazinesService {
         else System.out.println("Editor not recognized");
     }
 
-    public void editEditor(String editorName, Integer amount, boolean increase){
+    public void editEditor(String editorName, Integer amount, boolean increase) throws SQLException {
         Editor currentEditor = editors.stream().filter(
                 e -> Objects.equals(e.getName().toUpperCase(), editorName.toUpperCase())
         ).findFirst().orElseThrow(() -> {
@@ -202,9 +226,11 @@ public final class MagazinesService {
         else
             currentEditor.decreaseSalary(amount);
 
+        editorService.update(currentEditor);
+
     }
 
-    public void delEditor(String editorName){
+    public void delEditor(String editorName) throws SQLException {
 
         Editor currentEditor = editors.stream().filter(
                 e -> Objects.equals(e.getName().toUpperCase(), editorName.toUpperCase())
@@ -214,6 +240,8 @@ public final class MagazinesService {
 
         editors.remove(currentEditor);
         editorMagazine.remove(currentEditor);
+
+        editorService.delete(currentEditor);
     }
 
     public void getCritics() {
@@ -234,12 +262,14 @@ public final class MagazinesService {
         return filteredRubrics.toString();
     }
 
-    public void addRubric(String editorName, String title, String article, String magazineName, String fashionHouseName, String fashionDesignerName, String audience) {
+    public void addRubric(String editorName, String title, String article, String magazineName, String fashionHouseName, String fashionDesignerName, String audience) throws SQLException {
         Magazine magazine = magazines.stream().filter(
                         m -> Objects.equals(m.getName().toUpperCase(), magazineName.toUpperCase()))
                 .findFirst().orElseThrow(() -> {
                     throw new RuntimeException("Operation failed! Magazine not found.");
                 });
+
+        magazine.setNoRubrics(magazine.getNoRubrics()+1);
 
         FashionHouse fashionHouse = fashionHouses.stream().filter(
                         f -> Objects.equals(f.getName().toUpperCase(), fashionHouseName.toUpperCase()))
@@ -266,6 +296,9 @@ public final class MagazinesService {
         } else {
             editorMagazine.put(currentEditor, List.of(magazineName));
         }
+
+        //adaugam rubrica in db
+        rubricService.create(rubric);
     }
 
     public void addFashionDesigner(String name, String email, Integer experience, List<String> affiliates) {
@@ -276,15 +309,25 @@ public final class MagazinesService {
         fashionDesigners.add(fashionDesigner);
     }
 
-    public void delRubric(String title) {
+    public void delRubric(String title) throws SQLException {
         Optional<Rubric> rubricToRemove = rubrics.stream()
                 .filter(r -> r.getTitle().equalsIgnoreCase(title))
                 .findFirst();
 
+        Optional<Magazine> magazine = magazines.stream()
+                .filter(m -> m.getName().equalsIgnoreCase(rubricToRemove.get().getPublisher().getName()))
+                .findFirst();
+
+        //stergem un articol si scadem nr de rubrici
+        magazine.get().setNoRubrics(magazine.get().getNoRubrics() - 1);
+
         if (rubricToRemove.isPresent()) {
             archive.add(rubricToRemove);
             rubrics.remove(rubricToRemove.get());
+            rubricService.delete(rubricToRemove.get());
         }
+
+
     }
 
     public boolean verifyRubricTitle(String title) {
@@ -376,6 +419,225 @@ public final class MagazinesService {
 
         return result.toString();
     }
+
+
+    public void initialize() throws SQLException {
+
+        // MAGAZINES
+        PreparedStatement stmtMagazine = connection.prepareStatement("INSERT INTO fashionmagazine(name, noRubrics, countries) VALUES (?, ?, ?)");
+
+        for (Magazine magazine : magazines) {
+            stmtMagazine.setString(1, magazine.getName());
+            stmtMagazine.setInt(2, magazine.getNoRubrics());
+            StringBuilder sb = new StringBuilder(magazine.getCountries().getFirst());
+            for (String country : magazine.getCountries()) {
+                if (!country.equalsIgnoreCase(magazine.getCountries().getFirst()))
+                    sb.append(", ").append(country);
+            }
+            stmtMagazine.setString(3, sb.toString());
+            stmtMagazine.executeUpdate();
+        }
+
+
+        // CRITICS
+        PreparedStatement stmtCritic = connection.prepareStatement("INSERT INTO critic(name, email, experience, salary, ranking) VALUES (?, ?, ?, ?, ?)");
+
+        for (Critic critic : critics) {
+            stmtCritic.setString(1, critic.getName()); //name
+            stmtCritic.setString(2, critic.getEmail()); //email
+            stmtCritic.setInt(3, critic.getExperince()); //experience
+            stmtCritic.setInt(4, critic.getSalary()); //salary
+            stmtCritic.setInt(5, critic.getRanking()); //ranking
+            stmtCritic.executeUpdate();
+        }
+
+
+        // EDITORS
+        PreparedStatement stmtEditor = connection.prepareStatement("INSERT INTO editor(name, email, experience, salary) VALUES (?, ?, ?, ?)");
+
+        for (Editor editor : editors) {
+            stmtEditor.setString(1, editor.getName()); //name
+            stmtEditor.setString(2, editor.getEmail()); //email
+            stmtEditor.setInt(3, editor.getExperince()); //experience
+            stmtEditor.setInt(4, editor.getSalary()); //salary
+            stmtEditor.executeUpdate();
+        }
+
+
+        // FASHION DESIGNERS
+        PreparedStatement stmtFashionDesigner = connection.prepareStatement("INSERT INTO fashiondesigner(name, email, experience, salary, affiliates) VALUES (?, ?, ?, ?, ?)");
+
+        for (FashionDesigner fashionDesigner : fashionDesigners) {
+            stmtFashionDesigner.setString(1, fashionDesigner.getName()); //name
+            stmtFashionDesigner.setString(2, fashionDesigner.getEmail()); //email
+            stmtFashionDesigner.setInt(3, fashionDesigner.getExperince()); //experience
+            stmtFashionDesigner.setInt(4, fashionDesigner.getSalary()); //salary
+            StringBuilder sb = new StringBuilder(fashionDesigner.getAffiliates().getFirst().getName());
+            for (FashionHouse affiliate : fashionDesigner.getAffiliates()) {
+                if ( !affiliate.getName().equalsIgnoreCase(fashionDesigner.getAffiliates().getFirst().getName()) )
+                    sb.append(", ").append(affiliate.getName());
+            }
+            stmtFashionDesigner.setString(5, sb.toString()); //affiliates
+            stmtFashionDesigner.executeUpdate();
+        }
+
+
+        // FASHION HOUSES
+        PreparedStatement stmtFashionHouse = connection.prepareStatement("INSERT INTO fashionhouse(name, debut, worth) VALUES (?, ?, ?)");
+
+        for (FashionHouse fashionHouse : fashionHouses) {
+            stmtFashionHouse.setString(1, fashionHouse.getName()); //name
+            stmtFashionHouse.setInt(2, fashionHouse.getDebut()); //debut
+            stmtFashionHouse.setString(3, fashionHouse.getWorth()); //worth
+            stmtFashionHouse.executeUpdate();
+        }
+
+
+        // RUBRICS
+        PreparedStatement stmtRubric = connection.prepareStatement("INSERT INTO rubric(title, article, magazineId, fashionDesignerId, fashionHouseId, targetAudience) VALUES (?, ?, ?, ?, ?, ?)");
+
+        for (Rubric rubric : rubrics) {
+            stmtRubric.setString(1, rubric.getTitle()); //title
+            stmtRubric.setString(2, rubric.getArticle()); //article
+
+            String query = "SELECT idfashionmagazine FROM fashionmagazine WHERE UPPER(name) = UPPER('" + rubric.getPublisher().getName() + "')";
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+            Integer magazineId = 0;
+            if (resultSet.next())
+                magazineId = resultSet.getInt("idfashionmagazine");
+            stmtRubric.setInt(3, magazineId); //magazineId
+
+            String query1 = "SELECT idfashionhouse FROM fashionhouse WHERE UPPER(name) = UPPER('" + rubric.getReference().getName() + "')";
+            Statement statement1 = connection.createStatement();
+            ResultSet resultSet1 = statement1.executeQuery(query1);
+            Integer fashionHouseId = 0;
+            if (resultSet1.next())
+                fashionHouseId = resultSet1.getInt("idfashionhouse");
+            stmtRubric.setInt(5, fashionHouseId); //fashionHouseId
+
+            String query2 = "SELECT idfashiondesigner FROM fashiondesigner WHERE UPPER(name) = UPPER('" + rubric.getFashionDesigner().getName() + "')";
+            Statement statement2 = connection.createStatement();
+            ResultSet resultSet2 = statement2.executeQuery(query2);
+            Integer fashionDesignerId = 0;
+            if (resultSet2.next())
+                fashionDesignerId = resultSet2.getInt("idfashiondesigner");
+            stmtRubric.setInt(4, fashionDesignerId); //fashionDesignerId
+
+            stmtRubric.setString(6, rubric.getTargetAudience()); //targetAudience
+
+            stmtRubric.executeUpdate();
+        }
+    }
+
+
+    // MAGAZINE
+    public void createMagazine(Magazine magazine) throws SQLException {
+        magazineService.create(magazine);
+    }
+    public void readMagazine() throws SQLException {
+        magazineService.read();
+    }
+    public void getByIdMagazine(int id) throws SQLException {
+        magazineService.getById(id);
+    }
+    public void updateMagazine(Magazine magazine) throws SQLException {
+        magazineService.update(magazine);
+    }
+    public void deleteMagazine(Magazine magazine) throws SQLException {
+        magazineService.delete(magazine);
+    }
+
+
+    // FASHION HOUSE
+    public void createFashionHouse(FashionHouse fashionHouse) throws SQLException {
+        fashionHouseService.create(fashionHouse);
+    }
+    public void readFashionHouse() throws SQLException {
+        fashionHouseService.read();
+    }
+    public void getByIdFashionHouse(int id) throws SQLException {
+        fashionHouseService.getById(id);
+    }
+    public void updateFashionHouse(FashionHouse fashionHouse) throws SQLException {
+        fashionHouseService.update(fashionHouse);
+    }
+    public void deleteFashionHouse(FashionHouse fashionHouse) throws SQLException {
+        fashionHouseService.delete(fashionHouse);
+    }
+
+
+    // CRITIC
+    public void createCritic(Critic critic) throws SQLException {
+        criticService.create(critic);
+    }
+    public void readFashionCritic() throws SQLException {
+        criticService.read();
+    }
+    public void getByIdCritic(int id) throws SQLException {
+        criticService.getById(id);
+    }
+    public void updateCritic(Critic critic) throws SQLException {
+        criticService.update(critic);
+    }
+    public void deleteCritic(Critic critic) throws SQLException {
+        criticService.delete(critic);
+    }
+
+
+    // EDITOR
+    public void createEditor(Editor editor) throws SQLException {
+        editorService.create(editor);
+    }
+    public void readEditor() throws SQLException {
+        editorService.read();
+    }
+    public void getByIdEditor(int id) throws SQLException {
+        editorService.getById(id);
+    }
+    public void updateEditor(Editor editor) throws SQLException {
+        editorService.update(editor);
+    }
+    public void deleteEditor(Editor editor) throws SQLException {
+        editorService.delete(editor);
+    }
+
+
+    // FASHION DESIGNER
+    public void createFashionDesigner(FashionDesigner fashionDesigner) throws SQLException {
+        fashionDesignerService.create(fashionDesigner);
+    }
+    public void readFashionDesigner() throws SQLException {
+        fashionDesignerService.read();
+    }
+    public void getByIdFashionDesigner(int id) throws SQLException {
+        fashionDesignerService.getById(id);
+    }
+    public void updateFashionDesigner(FashionDesigner fashionDesigner) throws SQLException {
+        fashionDesignerService.update(fashionDesigner);
+    }
+    public void deleteFashionDesigner(FashionDesigner fashionDesigner) throws SQLException {
+        fashionDesignerService.delete(fashionDesigner);
+    }
+
+
+    // RUBRIC
+    public void createRubric(Rubric rubric) throws SQLException {
+        rubricService.create(rubric);
+    }
+    public void readRubric() throws SQLException {
+        rubricService.read();
+    }
+    public void getByIdRubric(int id) throws SQLException {
+        rubricService.getById(id);
+    }
+    public void updateRubric(Rubric rubric) throws SQLException {
+        rubricService.update(rubric);
+    }
+    public void deleteRubric(Rubric rubric) throws SQLException {
+        rubricService.delete(rubric);
+    }
+
 
 
 }

@@ -24,7 +24,10 @@ public class Critic extends Person{
             case 4 -> 1200;
             default -> 1650;
         };
+    }
 
+    public Integer getRanking() {
+        return ranking;
     }
 
     @Override

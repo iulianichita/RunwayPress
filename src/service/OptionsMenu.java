@@ -12,6 +12,7 @@ public enum OptionsMenu {
     top3BestSellers("Top3 best sellers magazines."),
     top3MoreRubrics("Top3 magazines with most rubrics"),
     showDetails("Show details of a specified magazine\n    (critic reviews, all editors, all fashion designer that work on it)"),
+    exitEditorMode("Exit editor priviledges."),
     EXIT("Exit.");
 
     private final String description;
