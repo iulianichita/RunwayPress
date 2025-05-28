@@ -1,4 +1,4 @@
-# RunwayPress
+## RunwayPress
 
 RunwayPress is a Java console-based application that simulates the dynamic world of fashion publishing. Built with object-oriented programming principles, the system models real-world entities such as fashion houses, magazine editors, and critics — all collaborating in the stylish ecosystem of fashion magazines.
 
@@ -8,8 +8,5 @@ From high-end couture critiques to emerging designer spotlights, the platform ai
 
 ***Think of it as Vogue meets OOP. Think clean code meets clean lines.***
 
-**Here you can see the demo:**
-
-[Click here for demo video (editor mode).](./demo/Stage1PAOJava_editor.mp4)
-
-[Click here for demo video (admin privileges).](./demo/Stage1PAOJava_admin.mp4)
+[Click here](./demo/Stage1PAOJava_editor.mp4) for demo video (editor mode).
+[Click here](./demo/Stage1PAOJava_admin.mp4) for demo video (admin privileges).
