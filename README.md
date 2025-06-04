@@ -8,5 +8,5 @@ From high-end couture critiques to emerging designer spotlights, the platform ai
 
 ***Think of it as Vogue meets OOP. Think clean code meets clean lines.***
 
-[Click here](./demo/Stage1PAOJava_editor.mp4) for demo video (editor mode).
-[Click here](./demo/Stage1PAOJava_admin.mp4) for demo video (admin privileges).
+[Click here](./demo/Stage1PAOProject_admin.mp4) for demo video (editor mode).
+[Click here](./demo/Stage1PAOProject_admin.mp4) for demo video (admin privileges).
